@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.lhstack</groupId>
+    <artifactId>pojo-serializer</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <podam.version>8.0.2.RELEASE</podam.version>
+        <fastjson.version>2.0.47</fastjson.version>
+    </properties>
+
+
+    <dependencies>
+
+        <dependency>
+            <groupId>sdk</groupId>
+            <artifactId>sdk</artifactId>
+            <version>1.0.0</version>
+            <systemPath>${project.basedir}/lib/sdk-1.0.0.jar</systemPath>
+            <scope>system</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.co.jemos.podam</groupId>
+            <artifactId>podam</artifactId>
+            <version>8.0.2.RELEASE</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+            <version>${fastjson.version}</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>app</groupId>
+            <artifactId>app</artifactId>
+            <version>1.0.0</version>
+            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/app.jar</systemPath>
+            <scope>system</scope>
+        </dependency>
+        <dependency>
+            <groupId>app-java</groupId>
+            <artifactId>app-java</artifactId>
+            <version>1.0.0</version>
+            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/plugins/java/lib/java-impl.jar</systemPath>
+            <scope>system</scope>
+        </dependency>
+        <dependency>
+            <groupId>app-util</groupId>
+            <artifactId>app-util</artifactId>
+            <version>1.0.0</version>
+            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/util.jar</systemPath>
+            <scope>system</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>app-util1</groupId>
+            <artifactId>app-util1</artifactId>
+            <version>1.0.0</version>
+            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/util_rt.jar</systemPath>
+            <scope>system</scope>
+        </dependency>
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>sdk:sdk</exclude>
+                                    <exclude>app:app</exclude>
+                                    <exclude>app-java:app-java</exclude>
+                                    <exclude>app-util:app-util</exclude>
+                                    <exclude>app-util1:app-util1</exclude>
+                                </excludes>
+                            </artifactSet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
