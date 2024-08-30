@@ -11,7 +11,6 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.IconLoader;
@@ -40,6 +39,8 @@ public class PluginImpl implements IPlugin {
     private final Map<String, MessageBusConnection> messageBusConnectionMap = new HashMap<>();
 
     private final Map<String, JComponent> panelMap = new HashMap<>();
+
+    private final Map<String, Runnable> openThisPageMap = new HashMap<>();
 
     @Override
     public JComponent createPanel(Project project) {
@@ -72,6 +73,7 @@ public class PluginImpl implements IPlugin {
             if (field.getLanguageFileType() == Json5FileType.INSTANCE) {
                 field.setText(JSONObject.toJSONString(instance, JSONWriter.Feature.PrettyFormat));
             }
+            Optional.ofNullable(openThisPageMap.get(project.getLocationHash())).ifPresent(Runnable::run);
         } catch (Throwable e) {
             Notifications.Bus.notify(new Notification(Group.GROUP_ID, "Bean转换失败", e.getMessage(), NotificationType.ERROR), project);
         }
@@ -82,47 +84,17 @@ public class PluginImpl implements IPlugin {
      */
     @Override
     public void install() {
-        for (Project project : ProjectManager.getInstance().getOpenProjects()) {
-            messageBusConnectionMap.computeIfAbsent(project.getLocationHash(), key -> {
-                MessageBusConnection connect = project.getMessageBus().connect();
-                Disposer.register(project, connect);
-                return connect;
-            });
-            panelMap.computeIfAbsent(project.getLocationHash(), key -> {
-                List<Disposable> disposables = getDisposables(project);
-                SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, false);
-                DefaultActionGroup group = new DefaultActionGroup();
-
-                PsiClassHistoryAction psiClassHistoryAction = new PsiClassHistoryAction(project);
-                disposables.add(psiClassHistoryAction);
-                SelectClassAction selectClassAction = new SelectClassAction();
-                disposables.add(selectClassAction);
-
-                group.add(psiClassHistoryAction);
-                group.add(new PositionSelectClassAction(project, psiClassHistoryAction));
-                group.add(new ClearHistoryAction(project, psiClassHistoryAction));
-                group.add(selectClassAction);
-                ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("Tools@BeanSerializer", group, true);
-                actionToolbar.setTargetComponent(panel);
-                JComponent component = actionToolbar.getComponent();
-                panel.setToolbar(new FlowPanel(FlowLayout.RIGHT, component));
-                MultiLanguageTextField languageTextField = new MultiLanguageTextField(Json5FileType.INSTANCE, project);
-                MessageBusConnection messageBusConnection = messageBusConnectionMap.get(project.getLocationHash());
-                messageBusConnection.subscribe(RenderObjectListener.TOPIC, (RenderObjectListener) (type, uniqueKey, psiClass, instance) -> render(type, languageTextField, instance, project));
-                panel.setContent(languageTextField);
-                return panel;
-            });
-        }
         RightClickMenuInitializer.init();
     }
 
     @Override
-    public void openProject(Project project) {
+    public void openProject(Project project, Runnable openThisPage) {
         messageBusConnectionMap.computeIfAbsent(project.getLocationHash(), key -> {
             MessageBusConnection connect = project.getMessageBus().connect();
             Disposer.register(project, connect);
             return connect;
         });
+        openThisPageMap.computeIfAbsent(project.getLocationHash(), key -> openThisPage);
         panelMap.computeIfAbsent(project.getLocationHash(), key -> {
             List<Disposable> disposables = getDisposables(project);
             SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, false);
