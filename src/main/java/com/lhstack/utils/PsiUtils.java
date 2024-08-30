@@ -1,6 +1,9 @@
 package com.lhstack.utils;
 
+import com.intellij.psi.PsiArrayType;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiPrimitiveType;
+import com.intellij.psi.PsiType;
 
 import java.util.Arrays;
 
@@ -36,5 +39,40 @@ public class PsiUtils {
             qualifiedName = psiClass.getQualifiedName();
         }
         return qualifiedName;
+    }
+
+    public static Class<?> resolveClass(PsiPrimitiveType psiPrimitiveType) {
+        if (psiPrimitiveType.equals(PsiType.BOOLEAN)) {
+            return boolean.class;
+        }
+        if (psiPrimitiveType.equals(PsiType.BYTE)) {
+            return byte.class;
+        }
+        if (psiPrimitiveType.equals(PsiType.CHAR)) {
+            return char.class;
+        }
+        if (psiPrimitiveType.equals(PsiType.SHORT)) {
+            return short.class;
+        }
+        if (psiPrimitiveType.equals(PsiType.INT)) {
+            return int.class;
+        }
+
+        if (psiPrimitiveType.equals(PsiType.FLOAT)) {
+            return float.class;
+        }
+
+        if (psiPrimitiveType.equals(PsiType.LONG)) {
+            return long.class;
+        }
+
+        if (psiPrimitiveType.equals(PsiType.DOUBLE)) {
+            return double.class;
+        }
+
+        if (psiPrimitiveType.equals(PsiType.VOID)) {
+            return void.class;
+        }
+        return null;
     }
 }

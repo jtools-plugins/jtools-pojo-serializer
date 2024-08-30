@@ -103,10 +103,19 @@ public class PsiClassHistoryAction extends AbstractComboBoxAction<PsiClassHistor
         }
         if (b) {
             presentation.setText(entry.getKey());
+            PsiClass psiClass = entry.psiClass;
+            if(psiClass != null){
+                presentation.setDescription(entry.psiClass.getQualifiedName());
+            }
         } else {
-            presentation.setText(entry.psiClass.getName());
+            PsiClass psiClass = entry.psiClass;
+            if(psiClass != null){
+                presentation.setText(psiClass.getName());
+                presentation.setDescription(entry.psiClass.getQualifiedName());
+            }else {
+                presentation.setText(entry.getKey());
+            }
         }
-        presentation.setDescription(entry.psiClass.getQualifiedName());
     }
 
     @Override

@@ -133,7 +133,7 @@ public class RightClickMenuInitializer {
                                         } else {
                                             instance = BeanUtils.mockInstance(parameterType, Void.class);
                                         }
-                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
+                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiParameterClass.getClassName() + "_" + parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                     } else {
                                         Constructor<?> constructor = BeanUtils.findConstructor(project, pathClassLoader, psiClass, method);
                                         Class<?>[] parameterTypes = constructor.getParameterTypes();
@@ -145,7 +145,7 @@ public class RightClickMenuInitializer {
                                         } else {
                                             instance = BeanUtils.mockInstance(parameterType, Void.class);
                                         }
-                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
+                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiParameterClass.getClassName() + "_" + parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                     }
                                 } catch (Throwable e) {
                                     Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
@@ -154,6 +154,17 @@ public class RightClickMenuInitializer {
                         });
                     }
 
+                }
+
+                if (parameter != null && parameter.getType() instanceof PsiPrimitiveType psiPrimitiveType) {
+                    group.add(new AnAction(() -> parameter.getName() + "Serializer", IconLoader.findIcon("icons/method-parameter.svg", RightClickMenuInitializer.class)) {
+                        @Override
+                        public void actionPerformed(AnActionEvent anActionEvent) {
+                            Class<?> clazz = PsiUtils.resolveClass(psiPrimitiveType);
+                            Object instance = BeanUtils.mockInstance(clazz, Void.class);
+                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", clazz.getSimpleName() + "_" + parameter.getNameIdentifier().getText(), null, instance);
+                        }
+                    });
                 }
             }
         } catch (Throwable e) {
@@ -201,7 +212,6 @@ public class RightClickMenuInitializer {
                                         instance = BeanUtils.mockInstance(returnTypeClass, Void.class);
                                     }
                                     project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", method.getReturnTypeElement().getText(), resolve, instance);
-                                    Notifications.Bus.notify(new Notification(Group.GROUP_ID, "对象转换通知", "转换对象成功,请在BeanSerializer插件面板中查看转换结果", NotificationType.INFORMATION), project);
                                 } catch (Throwable e) {
                                     Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
                                 }
@@ -209,6 +219,26 @@ public class RightClickMenuInitializer {
                         });
                     }
                 }
+            }
+            if (returnType instanceof PsiPrimitiveType psiPrimitiveType) {
+                group.add(new AnAction(() -> "MethodReturnSerializer", IconLoader.findIcon("icons/method-return.svg", RightClickMenuInitializer.class)) {
+
+                    @Override
+                    public ActionUpdateThread getActionUpdateThread() {
+                        return ActionUpdateThread.EDT;
+                    }
+
+                    @Override
+                    public void actionPerformed(AnActionEvent event) {
+                        try {
+                            Class<?> clazz = PsiUtils.resolveClass(psiPrimitiveType);
+                            Object instance = BeanUtils.mockInstance(clazz, Void.class);
+                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", method.getReturnTypeElement().getText(), null, instance);
+                        } catch (Throwable e) {
+                            Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
+                        }
+                    }
+                });
             }
         } catch (Throwable e) {
             Notifications.Bus.notify(new Notification(Group.GROUP_ID, "生成MethodSerializer.MethodReturnSerializerMenu失败", e.getMessage(), NotificationType.ERROR), project);
@@ -244,7 +274,6 @@ public class RightClickMenuInitializer {
                         try {
                             Object instance = BeanUtils.mockInstance(psiClass, event.getProject());
                             project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiClass.getQualifiedName(), psiClass, instance);
-                            Notifications.Bus.notify(new Notification(Group.GROUP_ID, "对象转换通知", "转换对象成功,请在BeanSerializer插件面板中查看转换结果", NotificationType.INFORMATION), project);
                         } catch (Throwable e) {
                             Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
                         }

@@ -48,25 +48,15 @@ public class BeanUtils {
                         }
                     }
                     if (type instanceof PsiPrimitiveType psiPrimitiveType) {
-                        switch (psiPrimitiveType.getCanonicalText()) {
-                            case "long":
-                                return long.class;
-                            case "int":
-                                return int.class;
-                            case "boolean":
-                                return boolean.class;
-                            case "short":
-                                return short.class;
-                            case "byte":
-                                return byte.class;
-                            case "char":
-                                return char.class;
-                            case "float":
-                                return float.class;
-                            case "double":
-                                return double.class;
-                        }
+                        return PsiUtils.resolveClass(psiPrimitiveType);
                     }
+//                    if(type instanceof PsiArrayType psiArrayType){
+//                        try{
+//                            return classLoader.loadClass(PsiUtils.resolveClassName(psiArrayType));
+//                        }catch (Throwable e){
+//                            return null;
+//                        }
+//                    }
                     return null;
                 })
                 .filter(Objects::nonNull)
