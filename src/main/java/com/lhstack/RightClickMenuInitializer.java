@@ -21,6 +21,7 @@ import com.lhstack.utils.ExceptionUtils;
 import com.lhstack.utils.ProjectUtils;
 import com.lhstack.utils.PsiUtils;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -121,17 +122,31 @@ public class RightClickMenuInitializer {
                             public void actionPerformed(AnActionEvent event) {
                                 try {
                                     UrlClassLoader pathClassLoader = ProjectUtils.projectClassloader(project);
-                                    Method classMethod = BeanUtils.findMethod(pathClassLoader, psiClass, method);
-                                    Class<?>[] parameterTypes = classMethod.getParameterTypes();
-                                    Class<?> parameterType = parameterTypes[finalI];
-                                    Type genericParameterType = classMethod.getGenericParameterTypes()[finalI];
-                                    Object instance = null;
-                                    if (genericParameterType instanceof ParameterizedType parameterizedType) {
-                                        instance = BeanUtils.mockInstance(parameterType, parameterizedType.getActualTypeArguments());
+                                    if (!method.isConstructor()) {
+                                        Method classMethod = BeanUtils.findMethod(project, pathClassLoader, psiClass, method);
+                                        Class<?>[] parameterTypes = classMethod.getParameterTypes();
+                                        Class<?> parameterType = parameterTypes[finalI];
+                                        Type genericParameterType = classMethod.getGenericParameterTypes()[finalI];
+                                        Object instance = null;
+                                        if (genericParameterType instanceof ParameterizedType parameterizedType) {
+                                            instance = BeanUtils.mockInstance(parameterType, parameterizedType.getActualTypeArguments());
+                                        } else {
+                                            instance = BeanUtils.mockInstance(parameterType, Void.class);
+                                        }
+                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                     } else {
-                                        instance = BeanUtils.mockInstance(parameterType, Void.class);
+                                        Constructor<?> constructor = BeanUtils.findConstructor(project, pathClassLoader, psiClass, method);
+                                        Class<?>[] parameterTypes = constructor.getParameterTypes();
+                                        Class<?> parameterType = parameterTypes[finalI];
+                                        Type genericParameterType = constructor.getGenericParameterTypes()[finalI];
+                                        Object instance = null;
+                                        if (genericParameterType instanceof ParameterizedType parameterizedType) {
+                                            instance = BeanUtils.mockInstance(parameterType, parameterizedType.getActualTypeArguments());
+                                        } else {
+                                            instance = BeanUtils.mockInstance(parameterType, Void.class);
+                                        }
+                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                     }
-                                    project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                 } catch (Throwable e) {
                                     Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
                                 }
@@ -157,6 +172,9 @@ public class RightClickMenuInitializer {
      */
     private static void addMethodReturnAction(Project project, Editor editor, PsiClass psiClass, PsiMethod method, DefaultActionGroup group) {
         try {
+            if (method.isConstructor()) {
+                return;
+            }
             PsiType returnType = method.getReturnType();
             if (returnType instanceof PsiClassType psiClassType) {
                 PsiClass resolve = psiClassType.resolve();
@@ -173,7 +191,7 @@ public class RightClickMenuInitializer {
                             public void actionPerformed(AnActionEvent event) {
                                 try {
                                     UrlClassLoader pathClassLoader = ProjectUtils.projectClassloader(project);
-                                    Method classMethod = BeanUtils.findMethod(pathClassLoader, psiClass, method);
+                                    Method classMethod = BeanUtils.findMethod(project, pathClassLoader, psiClass, method);
                                     Type genericReturnType = classMethod.getGenericReturnType();
                                     Class<?> returnTypeClass = classMethod.getReturnType();
                                     Object instance = null;
