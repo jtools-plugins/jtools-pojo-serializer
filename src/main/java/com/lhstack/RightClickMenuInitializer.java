@@ -335,7 +335,7 @@ public class RightClickMenuInitializer {
     }
 
     private static void beanSerializerActionInit() {
-        beanSerializerAction = new AnAction(() -> "BeanSerializer", IconLoader.findIcon("icons/bean-convert.svg", RightClickMenuInitializer.class)) {
+        beanSerializerAction = new AnAction(() -> "PojoSerializer", IconLoader.findIcon("icons/bean-convert.svg", RightClickMenuInitializer.class)) {
             @Override
             public void update(AnActionEvent e) {
                 Editor editor = e.getData(LangDataKeys.EDITOR);
