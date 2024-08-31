@@ -1,15 +1,29 @@
 package com.lhstack.utils;
 
-import com.intellij.psi.PsiArrayType;
+import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiType;
+import com.intellij.psi.search.GlobalSearchScope;
 
 import java.util.Arrays;
 
 public class PsiUtils {
 
     public static Boolean psiClassFilter(PsiClass psiClass) {
+        Project project = psiClass.getProject();
+        PsiClassType map = PsiType.getTypeByName("java.util.Map", project, GlobalSearchScope.allScope(project));
+        PsiClassType psiClassType = PsiClassType.getTypeByName(psiClass.getQualifiedName(), project, GlobalSearchScope.allScope(project));
+        if (psiClassType.isAssignableFrom(map)) {
+            return true;
+        }
+
+        PsiClassType collection = PsiType.getTypeByName("java.util.Collection", project, GlobalSearchScope.allScope(project));
+        if (psiClassType.isAssignableFrom(collection)) {
+            return true;
+        }
+
         if (psiClass.hasModifierProperty("abstract")) {
             return false;
         }

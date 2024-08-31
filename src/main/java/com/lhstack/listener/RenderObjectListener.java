@@ -5,7 +5,7 @@ import com.intellij.util.messages.Topic;
 
 public interface RenderObjectListener {
 
-    Topic<RenderObjectListener> TOPIC = Topic.create("Tools@BeanSerializer@RenderObjectListener", RenderObjectListener.class);
+    Topic<RenderObjectListener> TOPIC = Topic.create("Tools@PojoSerializer@RenderObjectListener", RenderObjectListener.class);
 
     void render(String type,String key, PsiClass psiClass, Object instance);
 }

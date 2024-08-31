@@ -21,10 +21,7 @@ import com.lhstack.utils.ExceptionUtils;
 import com.lhstack.utils.ProjectUtils;
 import com.lhstack.utils.PsiUtils;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 
 public class RightClickMenuInitializer {
 
@@ -36,15 +33,120 @@ public class RightClickMenuInitializer {
 
     private static DefaultActionGroup methodSerializerAction;
 
+    private static DefaultActionGroup fieldSerializerAction;
+
     public static void init() {
         beanSerializerActionInit();
         methodSerializerActionInit();
+        fieldSerializerActionInit();
         if (ActionManager.getInstance().getAction(EDITOR_POPUP_MENU) instanceof DefaultActionGroup group) {
+            group.add(fieldSerializerAction, Constraints.FIRST);
             group.add(methodSerializerAction, Constraints.FIRST);
             group.add(beanSerializerAction, Constraints.FIRST);
             group.addSeparator();
         }
 
+    }
+
+    private static void fieldSerializerActionInit() {
+        fieldSerializerAction = new DefaultActionGroup("FieldSerializer", "序列化字段", IconLoader.findIcon("icons/field.svg", RightClickMenuInitializer.class)) {
+            @Override
+            public void update(AnActionEvent e) {
+                super.update(e);
+                Editor editor = e.getData(LangDataKeys.EDITOR);
+                if (editor != null) {
+                    PsiFile psiFile = PsiDocumentManager.getInstance(e.getProject()).getPsiFile(editor.getDocument());
+                    PsiClass psiClass = PsiTreeUtil.findChildOfType(psiFile, PsiClass.class);
+                    if (psiClass != null) {
+                        if (e.getDataContext() instanceof UserDataHolder dataHolder) {
+                            dataHolder.putUserData(Keys.PSI_CLASS_KEY, psiClass);
+                            removeAll();
+                            addFieldSerializerActions(e.getProject(), editor, psiClass, this);
+                            return;
+                        }
+                    }
+                }
+                e.getPresentation().setEnabledAndVisible(false);
+            }
+
+            @Override
+            public ActionUpdateThread getActionUpdateThread() {
+                return ActionUpdateThread.EDT;
+            }
+        };
+        fieldSerializerAction.setPopup(true);
+    }
+
+    private static void addFieldSerializerActions(Project project, Editor editor, PsiClass psiClass, DefaultActionGroup group) {
+        SelectionModel selectionModel = editor.getSelectionModel();
+        int selectionStart = selectionModel.getSelectionStart();
+        int selectionEnd = selectionModel.getSelectionEnd();
+        for (PsiField psiField : psiClass.getAllFields()) {
+            TextRange textRange = psiField.getTextRange();
+            if (textRange.getStartOffset() <= selectionStart && textRange.getEndOffset() >= selectionEnd) {
+                addFieldSerializerAction(project, editor, psiClass, psiField, group);
+            }
+        }
+    }
+
+    private static void addFieldSerializerAction(Project project, Editor editor, PsiClass psiClass, PsiField psiField, DefaultActionGroup group) {
+        PsiType type = psiField.getType();
+        if (type instanceof PsiPrimitiveType psiPrimitiveType) {
+            group.add(new AnAction(() -> psiField.getName() + "Serializer", IconLoader.findIcon("icons/method-parameter.svg", RightClickMenuInitializer.class)) {
+                @Override
+                public void actionPerformed(AnActionEvent event) {
+                    Class<?> clazz = PsiUtils.resolveClass(psiPrimitiveType);
+                    Object instance = BeanUtils.mockInstance(clazz, Void.class);
+                    project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiPrimitiveType.getCanonicalText(), psiClass, instance);
+                }
+            });
+        } else if (type instanceof PsiClassType psiClassType) {
+            PsiClass resolve = psiClassType.resolve();
+            if (resolve != null && PsiUtils.psiClassFilter(resolve)) {
+                group.add(new AnAction(() -> psiField.getName() + "Serializer", IconLoader.findIcon("icons/method-parameter.svg", RightClickMenuInitializer.class)) {
+                    @Override
+                    public void actionPerformed(AnActionEvent event) {
+                        try {
+                            UrlClassLoader urlClassLoader = ProjectUtils.projectClassloader(project);
+                            Class<?> clazz = urlClassLoader.loadClass(PsiUtils.resolveClassName(psiClass));
+                            Field field = clazz.getDeclaredField(psiField.getName());
+                            Type genericType = field.getGenericType();
+                            if (genericType instanceof ParameterizedType parameterizedType) {
+                                Object instance = BeanUtils.mockInstance(field.getType(), parameterizedType.getActualTypeArguments());
+                                project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiField.getTypeElement().getText(), psiClass, instance);
+                            } else {
+                                Object instance = BeanUtils.mockInstance(field.getType(), Void.class);
+                                project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiField.getTypeElement().getText(), psiClass, instance);
+                            }
+                        } catch (Throwable e) {
+                            Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+
+    /**
+     * 添加方法上的action和parameter的action
+     *
+     * @param project
+     * @param editor
+     * @param psiClass
+     * @param group
+     */
+    private static void addMethodReturnAndParameterActions(Project project, Editor editor, PsiClass psiClass, DefaultActionGroup group) {
+        SelectionModel selectionModel = editor.getSelectionModel();
+        int selectionStart = selectionModel.getSelectionStart();
+        int selectionEnd = selectionModel.getSelectionEnd();
+        for (PsiMethod method : psiClass.getMethods()) {
+            TextRange textRange = method.getTextRange();
+            if (textRange.getStartOffset() <= selectionStart && textRange.getEndOffset() >= selectionEnd) {
+                addMethodReturnAction(project, editor, psiClass, method, group);
+                addMethodArgumentAction(project, editor, psiClass, method, group);
+            }
+        }
     }
 
 
@@ -79,26 +181,6 @@ public class RightClickMenuInitializer {
         methodSerializerAction.setPopup(true);
     }
 
-    /**
-     * 添加方法上的action和parameter的action
-     *
-     * @param project
-     * @param editor
-     * @param psiClass
-     * @param group
-     */
-    private static void addMethodReturnAndParameterActions(Project project, Editor editor, PsiClass psiClass, DefaultActionGroup group) {
-        SelectionModel selectionModel = editor.getSelectionModel();
-        int selectionStart = selectionModel.getSelectionStart();
-        int selectionEnd = selectionModel.getSelectionEnd();
-        for (PsiMethod method : psiClass.getMethods()) {
-            TextRange textRange = method.getTextRange();
-            if (textRange.getStartOffset() <= selectionStart && textRange.getEndOffset() >= selectionEnd) {
-                addMethodReturnAction(project, editor, psiClass, method, group);
-                addMethodArgumentAction(project, editor, psiClass, method, group);
-            }
-        }
-    }
 
     /**
      * 添加方法参数操作
@@ -130,10 +212,11 @@ public class RightClickMenuInitializer {
                                         Object instance = null;
                                         if (genericParameterType instanceof ParameterizedType parameterizedType) {
                                             instance = BeanUtils.mockInstance(parameterType, parameterizedType.getActualTypeArguments());
+                                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                         } else {
                                             instance = BeanUtils.mockInstance(parameterType, Void.class);
+                                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiParameterClass.getClassName(), parameterPsiClass, instance);
                                         }
-                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiParameterClass.getClassName() + "_" + parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                     } else {
                                         Constructor<?> constructor = BeanUtils.findConstructor(project, pathClassLoader, psiClass, method);
                                         Class<?>[] parameterTypes = constructor.getParameterTypes();
@@ -142,10 +225,11 @@ public class RightClickMenuInitializer {
                                         Object instance = null;
                                         if (genericParameterType instanceof ParameterizedType parameterizedType) {
                                             instance = BeanUtils.mockInstance(parameterType, parameterizedType.getActualTypeArguments());
+                                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                         } else {
                                             instance = BeanUtils.mockInstance(parameterType, Void.class);
+                                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiParameterClass.getClassName(), parameterPsiClass, instance);
                                         }
-                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiParameterClass.getClassName() + "_" + parameter.getNameIdentifier().getText(), parameterPsiClass, instance);
                                     }
                                 } catch (Throwable e) {
                                     Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
@@ -162,7 +246,7 @@ public class RightClickMenuInitializer {
                         public void actionPerformed(AnActionEvent anActionEvent) {
                             Class<?> clazz = PsiUtils.resolveClass(psiPrimitiveType);
                             Object instance = BeanUtils.mockInstance(clazz, Void.class);
-                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", clazz.getSimpleName() + "_" + parameter.getNameIdentifier().getText(), null, instance);
+                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), null, instance);
                         }
                     });
                 }
@@ -208,10 +292,12 @@ public class RightClickMenuInitializer {
                                     Object instance = null;
                                     if (genericReturnType instanceof ParameterizedType parameterizedType) {
                                         instance = BeanUtils.mockInstance(returnTypeClass, parameterizedType.getActualTypeArguments());
+                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", method.getReturnTypeElement().getText(), resolve, instance);
                                     } else {
                                         instance = BeanUtils.mockInstance(returnTypeClass, Void.class);
+                                        project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", resolve.getQualifiedName(), resolve, instance);
                                     }
-                                    project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", method.getReturnTypeElement().getText(), resolve, instance);
+
                                 } catch (Throwable e) {
                                     Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
                                 }
@@ -221,6 +307,9 @@ public class RightClickMenuInitializer {
                 }
             }
             if (returnType instanceof PsiPrimitiveType psiPrimitiveType) {
+                if (PsiType.VOID.equals(psiPrimitiveType)) {
+                    return;
+                }
                 group.add(new AnAction(() -> "MethodReturnSerializer", IconLoader.findIcon("icons/method-return.svg", RightClickMenuInitializer.class)) {
 
                     @Override
@@ -233,7 +322,7 @@ public class RightClickMenuInitializer {
                         try {
                             Class<?> clazz = PsiUtils.resolveClass(psiPrimitiveType);
                             Object instance = BeanUtils.mockInstance(clazz, Void.class);
-                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", method.getReturnTypeElement().getText(), null, instance);
+                            project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiPrimitiveType.getCanonicalText(), null, instance);
                         } catch (Throwable e) {
                             Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
                         }
@@ -292,6 +381,7 @@ public class RightClickMenuInitializer {
         if (ActionManager.getInstance().getAction(EDITOR_POPUP_MENU) instanceof DefaultActionGroup group) {
             group.remove(beanSerializerAction);
             group.remove(methodSerializerAction);
+            group.remove(fieldSerializerAction);
         }
     }
 }

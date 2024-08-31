@@ -9,15 +9,72 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <podam.version>8.0.2.RELEASE</podam.version>
         <fastjson.version>2.0.47</fastjson.version>
+        <jackson.version>2.17.1</jackson.version>
+        <xstream.version>1.4.20</xstream.version>
+        <yamlbeans.version>1.17</yamlbeans.version>
+        <opencsv.version>5.9</opencsv.version>
+        <toml4j.version>0.7.3</toml4j.version>
+        <json-flattener.version>0.16.6</json-flattener.version>
     </properties>
 
 
     <dependencies>
+
+        <dependency>
+            <groupId>com.github.wnameless.json</groupId>
+            <artifactId>json-flattener</artifactId>
+            <version>${json-flattener.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.hotmoka</groupId>
+            <artifactId>toml4j</artifactId>
+            <version>${toml4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>${opencsv.version}</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.esotericsoftware.yamlbeans</groupId>
+            <artifactId>yamlbeans</artifactId>
+            <version>${yamlbeans.version}</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.thoughtworks.xstream</groupId>
+            <artifactId>xstream</artifactId>
+            <version>${xstream.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-toml</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-properties</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>sdk</groupId>
@@ -44,21 +101,21 @@
             <groupId>app</groupId>
             <artifactId>app</artifactId>
             <version>1.0.0</version>
-            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/app.jar</systemPath>
+            <systemPath>F:/Repo/Gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/app.jar</systemPath>
             <scope>system</scope>
         </dependency>
         <dependency>
             <groupId>app-java</groupId>
             <artifactId>app-java</artifactId>
             <version>1.0.0</version>
-            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/plugins/java/lib/java-impl.jar</systemPath>
+            <systemPath>F:/Repo/Gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/plugins/java/lib/java-impl.jar</systemPath>
             <scope>system</scope>
         </dependency>
         <dependency>
             <groupId>app-util</groupId>
             <artifactId>app-util</artifactId>
             <version>1.0.0</version>
-            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/util.jar</systemPath>
+            <systemPath>F:/Repo/Gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/util.jar</systemPath>
             <scope>system</scope>
         </dependency>
 
@@ -66,7 +123,7 @@
             <groupId>app-util1</groupId>
             <artifactId>app-util1</artifactId>
             <version>1.0.0</version>
-            <systemPath>E:/gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/util_rt.jar</systemPath>
+            <systemPath>F:/Repo/Gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/util_rt.jar</systemPath>
             <scope>system</scope>
         </dependency>
 

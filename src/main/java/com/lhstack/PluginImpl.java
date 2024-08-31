@@ -2,6 +2,11 @@ package com.lhstack;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
+import com.esotericsoftware.yamlbeans.YamlWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.javaprop.JavaPropsMapper;
+import com.github.wnameless.json.flattener.JsonFlattener;
+import com.intellij.designer.actions.AbstractComboBoxAction;
 import com.intellij.json.json5.Json5FileType;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -10,6 +15,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
@@ -22,15 +28,24 @@ import com.lhstack.actions.SelectClassAction;
 import com.lhstack.component.FlowPanel;
 import com.lhstack.component.MultiLanguageTextField;
 import com.lhstack.constant.Group;
+import com.lhstack.listener.ChangeSerializerTypeListener;
 import com.lhstack.listener.RenderObjectListener;
 import com.lhstack.tools.plugins.IPlugin;
 import com.lhstack.utils.ExceptionUtils;
+import com.lhstack.utils.FileTypeUtils;
+import com.moandjiezana.toml.TomlWriter;
+import com.opencsv.CSVWriter;
+import com.opencsv.bean.StatefulBeanToCsv;
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.thoughtworks.xstream.XStream;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PluginImpl implements IPlugin {
 
@@ -56,28 +71,6 @@ public class PluginImpl implements IPlugin {
         return disposableMap.computeIfAbsent(project.getLocationHash(), key -> new ArrayList<>());
     }
 
-    /**
-     * 渲染
-     *
-     * @param type
-     * @param field
-     * @param instance
-     * @param project
-     */
-    private void render(String type, MultiLanguageTextField field, Object instance, Project project) {
-        try {
-            if (StringUtils.equals(type, "Clear")) {
-                field.setText("");
-                return;
-            }
-            if (field.getLanguageFileType() == Json5FileType.INSTANCE) {
-                field.setText(JSONObject.toJSONString(instance, JSONWriter.Feature.PrettyFormat));
-            }
-            Optional.ofNullable(openThisPageMap.get(project.getLocationHash())).ifPresent(Runnable::run);
-        } catch (Throwable e) {
-            Notifications.Bus.notify(new Notification(Group.GROUP_ID, "Bean转换失败", e.getMessage(), NotificationType.ERROR), project);
-        }
-    }
 
     /**
      * 需要所有项目都要初始化面板
@@ -109,16 +102,119 @@ public class PluginImpl implements IPlugin {
             group.add(new PositionSelectClassAction(project, psiClassHistoryAction));
             group.add(new ClearHistoryAction(project, psiClassHistoryAction));
             group.add(selectClassAction);
-            ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("Tools@BeanSerializer", group, true);
+            ActionToolbar actionToolbar = ActionManager.getInstance().createActionToolbar("Tools@PojoSerializerRightMenus", group, true);
             actionToolbar.setTargetComponent(panel);
             JComponent component = actionToolbar.getComponent();
-            panel.setToolbar(new FlowPanel(FlowLayout.RIGHT, component));
+            DefaultActionGroup leftGroup = new DefaultActionGroup();
+            AbstractComboBoxAction<String> serializerTypeChangeAction = createFileTypeChangeAction(project);
+            leftGroup.add(serializerTypeChangeAction);
+            ActionToolbar leftToolbar = ActionManager.getInstance().createActionToolbar("Tools@PojoSerializerLeftMenus", leftGroup, true);
+            leftToolbar.setTargetComponent(panel);
+            JPanel jPanel = new JPanel();
+            jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.X_AXIS));
+            jPanel.add(new FlowPanel(FlowLayout.LEFT, leftToolbar.getComponent()));
+            jPanel.add(new FlowPanel(FlowLayout.RIGHT, component));
+            panel.setToolbar(jPanel);
             MultiLanguageTextField languageTextField = new MultiLanguageTextField(Json5FileType.INSTANCE, project);
+            disposables.add(languageTextField);
             MessageBusConnection messageBusConnection = messageBusConnectionMap.get(project.getLocationHash());
-            messageBusConnection.subscribe(RenderObjectListener.TOPIC, (RenderObjectListener) (type, uniqueKey, psiClass, instance) -> render(type, languageTextField, instance, project));
+            messageBusConnection.subscribe(RenderObjectListener.TOPIC, (RenderObjectListener) (type, uniqueKey, psiClass, instance) -> render(type, serializerTypeChangeAction.getSelection(), languageTextField, instance, project));
+            messageBusConnection.subscribe(ChangeSerializerTypeListener.TOPIC, (ChangeSerializerTypeListener) type -> {
+                languageTextField.changeLanguageFileType(FileTypeUtils.resolve(type));
+                PsiClassHistoryAction.Entry selection = psiClassHistoryAction.getSelection();
+                if (selection != null) {
+                    //转换
+                    render("Change", type, languageTextField, selection.getInstance(), project);
+                }
+            });
             panel.setContent(languageTextField);
             return panel;
         });
+    }
+
+
+    /**
+     * 渲染
+     *
+     * @param type
+     * @param serializerType 序列化器类型
+     * @param field
+     * @param instance
+     * @param project        项目
+     */
+    private void render(String type, String serializerType, MultiLanguageTextField field, Object instance, Project project) {
+        try {
+            if (StringUtils.equals(type, "Clear")) {
+                field.setText("");
+                return;
+            }
+            switch (serializerType) {
+                case "json": {
+                    field.setText(JSONObject.toJSONString(instance, JSONWriter.Feature.PrettyFormat));
+                }
+                break;
+                case "xml": {
+                    XStream xstream = new XStream();
+                    field.setText(xstream.toXML(instance));
+                }
+                break;
+                case "yaml": {
+                    StringWriter sw = new StringWriter();
+                    YamlWriter yamlWriter = new YamlWriter(sw);
+                    yamlWriter.write(instance);
+                    yamlWriter.close();
+                    field.setText(sw.toString());
+                }
+                break;
+                case "properties": {
+                    Map<String, Object> map = JsonFlattener.flattenAsMap(JSONObject.toJSONString(instance));
+                    String text = map.entrySet().stream().map(item -> String.format("%s=%s", item.getKey(), item.getValue()))
+                            .collect(Collectors.joining("\r\n"));
+                    field.setText(text);
+                }
+                break;
+                case "csv": {
+                    StringWriter sw = new StringWriter();
+                    StatefulBeanToCsv<Object> beanToCsv = new StatefulBeanToCsvBuilder<Object>(sw)
+                            .withQuotechar(CSVWriter.NO_QUOTE_CHARACTER)
+                            .withOrderedResults(true)
+                            .build();
+                    beanToCsv.write(instance);
+                    field.setText(sw.toString());
+                }
+                break;
+                case "toml": {
+                    TomlWriter tomlWriter = new TomlWriter.Builder().build();
+                    field.setText(tomlWriter.write(instance));
+                }
+                break;
+            }
+            Optional.ofNullable(openThisPageMap.get(project.getLocationHash())).ifPresent(Runnable::run);
+        } catch (Throwable e) {
+            Notifications.Bus.notify(new Notification(Group.GROUP_ID, "Bean转换失败", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
+        }
+    }
+
+    private AbstractComboBoxAction<String> createFileTypeChangeAction(Project project) {
+        AbstractComboBoxAction<String> comboBoxAction = new AbstractComboBoxAction<>() {
+
+            @Override
+            protected void update(String type, Presentation presentation, boolean b) {
+                presentation.setText(type);
+                presentation.setDescription("序列化类型");
+            }
+
+            @Override
+            protected boolean selectionChanged(String type) {
+                if (!StringUtils.equals(this.getSelection(), type)) {
+                    project.getMessageBus().syncPublisher(ChangeSerializerTypeListener.TOPIC).changeType(type);
+                    return true;
+                }
+                return false;
+            }
+        };
+        comboBoxAction.setItems(Arrays.asList("json", "xml", "properties", "yaml", "csv", "toml"), "json");
+        return comboBoxAction;
     }
 
     @Override
@@ -152,12 +248,12 @@ public class PluginImpl implements IPlugin {
 
     @Override
     public String pluginName() {
-        return "BeanSerializer";
+        return "PojoSerializer";
     }
 
     @Override
     public String pluginDesc() {
-        return "Java,Kotlin,Scala,Groovy等Jvm语言转换成Json,Xml,Yaml";
+        return "Java,Kotlin,Scala,Groovy等Jvm语言转换成Json,Xml,Yaml,Toml,Csv,Properties";
     }
 
     @Override
