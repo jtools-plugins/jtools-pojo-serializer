@@ -1,20 +1,19 @@
 package com.lhstack.actions;
 
-import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
+import com.lhstack.constant.Icons;
 
-public class PositionSelectClassAction extends AnAction {
+public class PositionSelectClassAction extends DynamicIconAction {
 
     private final Project project;
     private final PsiClassHistoryAction historyAction;
 
     public PositionSelectClassAction(Project project, PsiClassHistoryAction action) {
-        super(() -> "打开选择的Class", IconLoader.findIcon("icons/position.svg", PositionSelectClassAction.class));
+        super(() -> "打开选择的Class", () -> Icons.load("icons/position", "svg"));
         this.project = project;
         this.historyAction = action;
     }

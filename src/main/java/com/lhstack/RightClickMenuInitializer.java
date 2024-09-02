@@ -7,13 +7,14 @@ import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.util.UserDataHolder;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.lang.UrlClassLoader;
+import com.lhstack.actions.DynamicIconAction;
 import com.lhstack.constant.Group;
+import com.lhstack.constant.Icons;
 import com.lhstack.constant.Keys;
 import com.lhstack.listener.RenderObjectListener;
 import com.lhstack.utils.BeanUtils;
@@ -49,10 +50,11 @@ public class RightClickMenuInitializer {
     }
 
     private static void fieldSerializerActionInit() {
-        fieldSerializerAction = new DefaultActionGroup("FieldSerializer", "序列化字段", IconLoader.findIcon("icons/field.svg", RightClickMenuInitializer.class)) {
+        fieldSerializerAction = new DefaultActionGroup("FieldSerializer", "序列化字段", Icons.load("icons/field", "svg")) {
             @Override
             public void update(AnActionEvent e) {
                 super.update(e);
+                e.getPresentation().setIcon(Icons.load("icons/field", "svg"));
                 Editor editor = e.getData(LangDataKeys.EDITOR);
                 if (editor != null) {
                     PsiFile psiFile = PsiDocumentManager.getInstance(e.getProject()).getPsiFile(editor.getDocument());
@@ -92,18 +94,23 @@ public class RightClickMenuInitializer {
     private static void addFieldSerializerAction(Project project, Editor editor, PsiClass psiClass, PsiField psiField, DefaultActionGroup group) {
         PsiType type = psiField.getType();
         if (type instanceof PsiPrimitiveType psiPrimitiveType) {
-            group.add(new AnAction(() -> psiField.getName() + "Serializer", IconLoader.findIcon("icons/method-parameter.svg", RightClickMenuInitializer.class)) {
+            group.add(new DynamicIconAction(() -> psiField.getName() + "Serializer", () -> Icons.load("icons/method-parameter", "svg")) {
                 @Override
                 public void actionPerformed(AnActionEvent event) {
                     Class<?> clazz = PsiUtils.resolveClass(psiPrimitiveType);
                     Object instance = BeanUtils.mockInstance(clazz, Void.class);
                     project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", psiPrimitiveType.getCanonicalText(), psiClass, instance);
                 }
+
+                @Override
+                public ActionUpdateThread getActionUpdateThread() {
+                    return ActionUpdateThread.EDT;
+                }
             });
         } else if (type instanceof PsiClassType psiClassType) {
             PsiClass resolve = psiClassType.resolve();
             if (resolve != null && PsiUtils.psiClassFilter(resolve)) {
-                group.add(new AnAction(() -> psiField.getName() + "Serializer", IconLoader.findIcon("icons/method-parameter.svg", RightClickMenuInitializer.class)) {
+                group.add(new DynamicIconAction(() -> psiField.getName() + "Serializer", () -> Icons.load("icons/method-parameter", "svg")) {
                     @Override
                     public void actionPerformed(AnActionEvent event) {
                         try {
@@ -121,6 +128,11 @@ public class RightClickMenuInitializer {
                         } catch (Throwable e) {
                             Notifications.Bus.notify(new Notification(Group.GROUP_ID, "转换对象异常", ExceptionUtils.extraStackMsg(e), NotificationType.ERROR), project);
                         }
+                    }
+
+                    @Override
+                    public ActionUpdateThread getActionUpdateThread() {
+                        return ActionUpdateThread.EDT;
                     }
                 });
             }
@@ -152,10 +164,11 @@ public class RightClickMenuInitializer {
 
     private static void methodSerializerActionInit() {
 
-        methodSerializerAction = new DefaultActionGroup("MethodSerializer", "序列化方法返回值和入参", IconLoader.findIcon("icons/method.svg", RightClickMenuInitializer.class)) {
+        methodSerializerAction = new DefaultActionGroup("MethodSerializer", "序列化方法返回值和入参", Icons.load("icons/method", "svg")) {
             @Override
             public void update(AnActionEvent e) {
                 super.update(e);
+                e.getPresentation().setIcon(Icons.load("icons/method", "svg"));
                 Editor editor = e.getData(LangDataKeys.EDITOR);
                 if (editor != null) {
                     PsiFile psiFile = PsiDocumentManager.getInstance(e.getProject()).getPsiFile(editor.getDocument());
@@ -199,7 +212,13 @@ public class RightClickMenuInitializer {
                 if (parameter != null && parameter.getType() instanceof PsiClassType psiParameterClass) {
                     PsiClass parameterPsiClass = psiParameterClass.resolve();
                     if (parameterPsiClass != null && PsiUtils.psiClassFilter(parameterPsiClass)) {
-                        group.add(new AnAction(() -> parameter.getName() + "Serializer", IconLoader.findIcon("icons/method-parameter.svg", RightClickMenuInitializer.class)) {
+                        group.add(new DynamicIconAction(() -> parameter.getName() + "Serializer", () -> Icons.load("icons/method-parameter", "svg")) {
+
+                            @Override
+                            public ActionUpdateThread getActionUpdateThread() {
+                                return ActionUpdateThread.EDT;
+                            }
+
                             @Override
                             public void actionPerformed(AnActionEvent event) {
                                 try {
@@ -241,12 +260,17 @@ public class RightClickMenuInitializer {
                 }
 
                 if (parameter != null && parameter.getType() instanceof PsiPrimitiveType psiPrimitiveType) {
-                    group.add(new AnAction(() -> parameter.getName() + "Serializer", IconLoader.findIcon("icons/method-parameter.svg", RightClickMenuInitializer.class)) {
+                    group.add(new DynamicIconAction(() -> parameter.getName() + "Serializer", () -> Icons.load("icons/method-parameter", "svg")) {
                         @Override
                         public void actionPerformed(AnActionEvent anActionEvent) {
                             Class<?> clazz = PsiUtils.resolveClass(psiPrimitiveType);
                             Object instance = BeanUtils.mockInstance(clazz, Void.class);
                             project.getMessageBus().syncPublisher(RenderObjectListener.TOPIC).render("Select", parameter.getNameIdentifier().getText(), null, instance);
+                        }
+
+                        @Override
+                        public ActionUpdateThread getActionUpdateThread() {
+                            return ActionUpdateThread.EDT;
                         }
                     });
                 }
@@ -275,7 +299,7 @@ public class RightClickMenuInitializer {
                 PsiClass resolve = psiClassType.resolve();
                 if (resolve != null) {
                     if (PsiUtils.psiClassFilter(resolve)) {
-                        group.add(new AnAction(() -> "MethodReturnSerializer", IconLoader.findIcon("icons/method-return.svg", RightClickMenuInitializer.class)) {
+                        group.add(new DynamicIconAction(() -> "MethodReturnSerializer", () -> Icons.load("icons/method-return", "svg")) {
 
                             @Override
                             public ActionUpdateThread getActionUpdateThread() {
@@ -310,7 +334,7 @@ public class RightClickMenuInitializer {
                 if (PsiType.VOID.equals(psiPrimitiveType)) {
                     return;
                 }
-                group.add(new AnAction(() -> "MethodReturnSerializer", IconLoader.findIcon("icons/method-return.svg", RightClickMenuInitializer.class)) {
+                group.add(new DynamicIconAction(() -> "MethodReturnSerializer", () -> Icons.load("icons/method-return", "svg")) {
 
                     @Override
                     public ActionUpdateThread getActionUpdateThread() {
@@ -335,9 +359,10 @@ public class RightClickMenuInitializer {
     }
 
     private static void beanSerializerActionInit() {
-        beanSerializerAction = new AnAction(() -> "PojoSerializer", IconLoader.findIcon("icons/bean-convert.svg", RightClickMenuInitializer.class)) {
+        beanSerializerAction = new DynamicIconAction(() -> "PojoSerializer", () -> Icons.load("icons/bean-convert", "svg")) {
             @Override
             public void update(AnActionEvent e) {
+                super.update(e);
                 Editor editor = e.getData(LangDataKeys.EDITOR);
                 if (editor != null) {
                     PsiFile psiFile = PsiDocumentManager.getInstance(e.getProject()).getPsiFile(editor.getDocument());
