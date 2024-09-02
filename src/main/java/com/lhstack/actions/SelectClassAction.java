@@ -7,25 +7,24 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.lang.UrlClassLoader;
 import com.lhstack.constant.Group;
+import com.lhstack.constant.Icons;
 import com.lhstack.listener.RenderObjectListener;
 import com.lhstack.utils.BeanUtils;
 import com.lhstack.utils.ExceptionUtils;
 import com.lhstack.utils.ProjectUtils;
 import com.lhstack.utils.PsiUtils;
 
-public class SelectClassAction extends AnAction implements Disposable {
+public class SelectClassAction extends DynamicIconAction implements Disposable {
 
     public SelectClassAction() {
-        super(() -> "选中要转换的Class", IconLoader.findIcon("icons/gen.svg", SelectClassAction.class));
+        super(() -> "选中要转换的Class", () -> Icons.load("icons/gen", "svg"));
     }
 
     @Override

@@ -1,21 +1,20 @@
 package com.lhstack.actions;
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.IconLoader;
+import com.lhstack.constant.Icons;
 import com.lhstack.listener.RenderObjectListener;
 
 import java.util.ArrayList;
 
-public class ClearHistoryAction extends AnAction {
+public class ClearHistoryAction extends DynamicIconAction {
 
     private final PsiClassHistoryAction action;
     private final Project project;
 
     public ClearHistoryAction(Project project, PsiClassHistoryAction action) {
-        super(() -> "清除历史记录", IconLoader.findIcon("icons/clear.svg", ClearHistoryAction.class));
+        super(() -> "清除历史记录", () -> Icons.load("icons/clear", "svg"));
         this.action = action;
         this.project = project;
     }
