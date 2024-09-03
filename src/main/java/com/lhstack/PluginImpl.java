@@ -2,7 +2,10 @@ package com.lhstack;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
+import com.esotericsoftware.yamlbeans.YamlConfig;
+import com.esotericsoftware.yamlbeans.YamlException;
 import com.esotericsoftware.yamlbeans.YamlWriter;
+import com.esotericsoftware.yamlbeans.scalar.ScalarSerializer;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.intellij.designer.actions.AbstractComboBoxAction;
 import com.intellij.json.json5.Json5FileType;
@@ -41,6 +44,8 @@ import org.apache.commons.lang3.StringUtils;
 import javax.swing.*;
 import java.awt.*;
 import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -158,7 +163,26 @@ public class PluginImpl implements IPlugin {
                 break;
                 case "yaml": {
                     StringWriter sw = new StringWriter();
-                    YamlWriter yamlWriter = new YamlWriter(sw);
+                    YamlConfig yamlConfig = new YamlConfig();
+                    yamlConfig.writeConfig.setQuoteChar(YamlConfig.Quote.LITERAL);
+                    yamlConfig.writeConfig.setAutoAnchor(true);
+                    yamlConfig.writeConfig.setWriteClassname(YamlConfig.WriteClassName.ALWAYS);
+                    yamlConfig.setAllowDuplicates(false);
+                    yamlConfig.setBeanProperties(true);
+                    yamlConfig.setPrivateFields(false);
+                    yamlConfig.setScalarSerializer(BigDecimal.class, new ScalarSerializer<BigDecimal>() {
+
+                        @Override
+                        public String write(BigDecimal bigDecimal) throws YamlException {
+                            return bigDecimal != null ? bigDecimal.setScale(2, RoundingMode.HALF_UP).toPlainString() : "";
+                        }
+
+                        @Override
+                        public BigDecimal read(String s) throws YamlException {
+                            return s != null ? new BigDecimal(s).setScale(2,RoundingMode.HALF_UP) : BigDecimal.ZERO;
+                        }
+                    });
+                    YamlWriter yamlWriter = new YamlWriter(sw, yamlConfig);
                     yamlWriter.write(instance);
                     yamlWriter.close();
                     field.setText(sw.toString());
