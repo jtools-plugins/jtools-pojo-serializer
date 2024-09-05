@@ -179,7 +179,7 @@ public class PluginImpl implements IPlugin {
 
                         @Override
                         public BigDecimal read(String s) throws YamlException {
-                            return s != null ? new BigDecimal(s).setScale(2,RoundingMode.HALF_UP) : BigDecimal.ZERO;
+                            return s != null ? new BigDecimal(s).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
                         }
                     });
                     YamlWriter yamlWriter = new YamlWriter(sw, yamlConfig);
