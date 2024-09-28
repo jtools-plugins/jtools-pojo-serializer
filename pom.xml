@@ -77,14 +77,6 @@
         </dependency>
 
         <dependency>
-            <groupId>sdk</groupId>
-            <artifactId>sdk</artifactId>
-            <version>1.0.0</version>
-            <systemPath>${project.basedir}/lib/sdk-1.0.0.jar</systemPath>
-            <scope>system</scope>
-        </dependency>
-
-        <dependency>
             <groupId>uk.co.jemos.podam</groupId>
             <artifactId>podam</artifactId>
             <version>8.0.2.RELEASE</version>
@@ -125,6 +117,14 @@
             <version>1.0.0</version>
             <systemPath>F:/Repo/Gradle/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/ideaIC/2022.3/4d343cadac04a0a31d70f6f96facfaa7f949df01/ideaIC-2022.3/lib/util_rt.jar</systemPath>
             <scope>system</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.lhstack.plugins.jtools</groupId>
+            <artifactId>JTools-Sdk</artifactId>
+            <version>0.0.1</version>
+            <scope>system</scope>
+            <systemPath>C:/Users/lhstack/.ideaTools/sdk/sdk.jar</systemPath>
+            <optional>true</optional>
         </dependency>
 
     </dependencies>

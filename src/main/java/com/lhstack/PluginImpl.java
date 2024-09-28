@@ -32,6 +32,7 @@ import com.lhstack.constant.Group;
 import com.lhstack.listener.ChangeSerializerTypeListener;
 import com.lhstack.listener.RenderObjectListener;
 import com.lhstack.tools.plugins.IPlugin;
+import com.lhstack.tools.plugins.Logger;
 import com.lhstack.utils.ExceptionUtils;
 import com.lhstack.utils.FileTypeUtils;
 import com.moandjiezana.toml.TomlWriter;
@@ -84,7 +85,7 @@ public class PluginImpl implements IPlugin {
     }
 
     @Override
-    public void openProject(Project project, Runnable openThisPage) {
+    public void openProject(Project project, Logger logger, Runnable openThisPage) {
         messageBusConnectionMap.computeIfAbsent(project.getLocationHash(), key -> {
             MessageBusConnection connect = project.getMessageBus().connect();
             Disposer.register(project, connect);
